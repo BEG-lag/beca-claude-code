@@ -1,0 +1,151 @@
+#!/bin/bash
+# Control de BeCa. Uso: beca <comando>. Corre "beca ayuda" para ver los comandos.
+
+AXO_HOME="${AXO_HOME:-$HOME/.axo}"
+APP="$HOME/Applications/BeCa.app"
+REGISTRY="$AXO_HOME/settings-tocados"
+
+ayuda() {
+  cat <<'TXT'
+beca abrir                 abre a BeCa, o lo vuelve a mostrar si está oculto
+beca ocultar               oculta a BeCa y detiene la animación
+beca mostrar               vuelve a mostrarlo
+beca cerrar                cierra la app
+beca sonido on|off         activa o silencia los sonidos
+beca on                    activa la integración con Claude Code
+beca off                   desactiva la integración sin desinstalar nada
+beca estado                muestra si está abierta y qué estado tiene
+beca conectar <carpeta>    agrega los hooks solo a ese proyecto
+beca desconectar <carpeta> quita los hooks de ese proyecto
+beca conectar --global     agrega los hooks a ~/.claude/settings.json
+beca desconectar --global  quita los hooks de ~/.claude/settings.json
+beca quitar                quita los hooks registrados, la app y ~/.axo
+TXT
+}
+
+settings_path() {
+  if [ "$1" = "--global" ]; then
+    printf '%s\n' "$HOME/.claude/settings.json"
+  else
+    [ -d "$1" ] || { echo "No existe la carpeta: $1" >&2; exit 1; }
+    printf '%s\n' "$(cd "$1" && pwd)/.claude/settings.local.json"
+  fi
+}
+
+# Solo toca entradas que apunten a axo-state. Lo demás del archivo se conserva.
+editar_settings() {
+  /usr/bin/python3 - "$1" "$2" "$AXO_HOME/hooks.json" <<'PY'
+import json, os, shutil, sys
+
+action, path, template = sys.argv[1:4]
+MARK = ".axo/axo-state"
+
+def is_axo(group):
+    return any(MARK in hook.get("command", "") for hook in group.get("hooks", []))
+
+data = {}
+if os.path.exists(path):
+    with open(path, encoding="utf-8") as source:
+        data = json.load(source)
+    backup = path + ".antes-de-axo"
+    if action == "conectar" and not os.path.exists(backup):
+        shutil.copy2(path, backup)
+
+hooks = data.get("hooks", {})
+for event in list(hooks):
+    hooks[event] = [group for group in hooks[event] if not is_axo(group)]
+    if not hooks[event]:
+        del hooks[event]
+
+if action == "conectar":
+    with open(template, encoding="utf-8") as source:
+        for event, groups in json.load(source).items():
+            hooks.setdefault(event, []).extend(groups)
+
+if hooks:
+    data["hooks"] = hooks
+else:
+    data.pop("hooks", None)
+
+if data:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    temporary = path + ".axo-tmp"
+    with open(temporary, "w", encoding="utf-8") as target:
+        json.dump(data, target, indent=2, ensure_ascii=False)
+        target.write("\n")
+    # El archivo temporal nace con permisos por defecto: conserva los originales.
+    if os.path.exists(path):
+        shutil.copymode(path, temporary)
+    os.replace(temporary, path)
+elif os.path.exists(path):
+    os.remove(path)
+PY
+}
+
+case "${1:-ayuda}" in
+  abrir)
+    rm -f "$AXO_HOME/hidden"
+    open "$APP"
+    ;;
+  ocultar)
+    : >"$AXO_HOME/hidden"
+    ;;
+  mostrar)
+    rm -f "$AXO_HOME/hidden"
+    ;;
+  cerrar)
+    pkill -x BeCa && echo "App cerrada." || echo "La app no estaba abierta."
+    ;;
+  sonido)
+    case "${2:-}" in
+      on) rm -f "$AXO_HOME/muted"; echo "Sonido activado." ;;
+      off) : >"$AXO_HOME/muted"; echo "Sonido silenciado." ;;
+      *) echo "Uso: beca sonido on|off" >&2; exit 1 ;;
+    esac
+    ;;
+  on)
+    rm -f "$AXO_HOME/disabled"
+    echo "Integración activada."
+    ;;
+  off)
+    : >"$AXO_HOME/disabled"
+    echo "Integración desactivada. Los hooks siguen configurados, pero no hacen nada."
+    ;;
+  estado)
+    if pgrep -x BeCa >/dev/null; then echo "App: abierta"; else echo "App: cerrada"; fi
+    if [ -e "$AXO_HOME/disabled" ]; then echo "Integración: desactivada"; else echo "Integración: activada"; fi
+    if [ -e "$AXO_HOME/muted" ]; then echo "Sonido: silenciado"; else echo "Sonido: activado"; fi
+    [ -f "$AXO_HOME/status/displayed" ] && echo "Mostrando: $(cat "$AXO_HOME/status/displayed")"
+    [ -f "$REGISTRY" ] && { echo "Hooks en:"; sed 's/^/  /' "$REGISTRY"; }
+    ;;
+  conectar)
+    [ -n "${2:-}" ] || { echo "Falta la carpeta, o --global." >&2; exit 1; }
+    path="$(settings_path "$2")" || exit 1
+    editar_settings conectar "$path" || exit 1
+    grep -qxF "$path" "$REGISTRY" 2>/dev/null || printf '%s\n' "$path" >>"$REGISTRY"
+    echo "Hooks agregados en $path"
+    ;;
+  desconectar)
+    [ -n "${2:-}" ] || { echo "Falta la carpeta, o --global." >&2; exit 1; }
+    path="$(settings_path "$2")" || exit 1
+    [ -f "$path" ] && editar_settings desconectar "$path"
+    if [ -f "$REGISTRY" ]; then
+      grep -vxF "$path" "$REGISTRY" >"$REGISTRY.tmp"
+      mv "$REGISTRY.tmp" "$REGISTRY"
+    fi
+    echo "Hooks quitados de $path"
+    ;;
+  quitar)
+    if [ -f "$REGISTRY" ]; then
+      while IFS= read -r path; do
+        [ -f "$path" ] && editar_settings desconectar "$path" && echo "Hooks quitados de $path"
+      done <"$REGISTRY"
+    fi
+    pkill -x BeCa
+    rm -rf "$APP" "$AXO_HOME"
+    echo "App desinstalada. Las carpetas del proyecto y el arte siguen intactos."
+    ;;
+  *)
+    ayuda
+    ;;
+esac

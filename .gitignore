@@ -1,0 +1,22 @@
+.DS_Store
+__pycache__/
+
+# Fotos reales del gato: no se publican.
+arte-gato/fuentes/
+
+# Generaciones crudas, audio sin recortar y archivos intermedios de QA.
+arte-gato/audio/crudo/
+arte-gato/audio/qa/
+arte-gato/decoded/
+arte-gato/qa/
+arte-gato/final/validation.json
+arte-gato/juego/despill.json
+fuentes/
+run/*
+!run/tools/
+
+# Mapas de memoria de las mediciones: traen rutas locales.
+bench/resultados/**/*-vmmap.txt
+
+# Configuración local de Claude Code.
+.claude/settings.local.json

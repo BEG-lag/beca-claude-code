@@ -1,0 +1,36 @@
+[
+ {
+  "caso": "payload 300 B",
+  "n": 300,
+  "media_ms": 4.36,
+  "p95_ms": 5.35,
+  "max_ms": 7.8
+ },
+ {
+  "caso": "payload 1 MB",
+  "n": 40,
+  "media_ms": 4.34,
+  "p95_ms": 4.91,
+  "max_ms": 4.98
+ },
+ {
+  "caso": "sh vacío (referencia)",
+  "n": 200,
+  "media_ms": 3.69
+ },
+ {
+  "caso": "200 en paralelo",
+  "total_ms": 294.9,
+  "codigos_no_cero": 0,
+  "restantes_antes_despues": [
+   0,
+   0
+  ],
+  "zombis_antes_despues": [
+   9,
+   9
+  ],
+  "estado_final": "working",
+  "temporales_huerfanos": 0
+ }
+]

@@ -1,0 +1,64 @@
+{
+  "SessionStart": [
+    {
+      "matcher": "startup|resume|clear",
+      "hooks": [{ "type": "command", "command": "$HOME/.axo/axo-state ready", "timeout": 2 }]
+    }
+  ],
+  "UserPromptSubmit": [
+    {
+      "hooks": [{ "type": "command", "command": "$HOME/.axo/axo-state working", "timeout": 2 }]
+    }
+  ],
+  "PreToolUse": [
+    {
+      "matcher": "^(?!AskUserQuestion$|ExitPlanMode$).*",
+      "hooks": [{ "type": "command", "command": "$HOME/.axo/axo-state working", "timeout": 2 }]
+    },
+    {
+      "matcher": "AskUserQuestion|ExitPlanMode",
+      "hooks": [{ "type": "command", "command": "$HOME/.axo/axo-state attention", "timeout": 2 }]
+    }
+  ],
+  "PermissionRequest": [
+    {
+      "hooks": [{ "type": "command", "command": "$HOME/.axo/axo-state attention", "timeout": 2 }]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+      "hooks": [{ "type": "command", "command": "$HOME/.axo/axo-state reviewing", "timeout": 2 }]
+    },
+    {
+      "matcher": "^(?!Edit$|Write$|MultiEdit$|NotebookEdit$).*",
+      "hooks": [{ "type": "command", "command": "$HOME/.axo/axo-state working", "timeout": 2 }]
+    }
+  ],
+  "PostToolUseFailure": [
+    {
+      "hooks": [{ "type": "command", "command": "$HOME/.axo/axo-state working", "timeout": 2 }]
+    }
+  ],
+  "Notification": [
+    {
+      "matcher": "permission_prompt|idle_prompt|elicitation_dialog|elicitation_url_dialog|agent_needs_input",
+      "hooks": [{ "type": "command", "command": "$HOME/.axo/axo-state attention", "timeout": 2 }]
+    }
+  ],
+  "Stop": [
+    {
+      "hooks": [{ "type": "command", "command": "$HOME/.axo/axo-state completed", "timeout": 2 }]
+    }
+  ],
+  "StopFailure": [
+    {
+      "hooks": [{ "type": "command", "command": "$HOME/.axo/axo-state failed", "timeout": 2 }]
+    }
+  ],
+  "SessionEnd": [
+    {
+      "hooks": [{ "type": "command", "command": "$HOME/.axo/axo-state ended", "timeout": 2 }]
+    }
+  ]
+}

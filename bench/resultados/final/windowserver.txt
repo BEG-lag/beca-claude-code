@@ -1,0 +1,12 @@
+quieta ws_inicio 36:08.00
+quieta ws_fin 36:27.04
+reposo ws_inicio 36:27.21
+reposo ws_fin 36:41.59
+animada ws_inicio 36:42.20
+animada ws_fin 36:58.75
+rafaga ws_inicio 36:58.87
+rafaga ws_fin 37:21.93
+oculta ws_inicio 37:25.73
+oculta ws_fin 37:47.69
+cerrada ws_inicio 37:48.15
+cerrada ws_fin 38:05.78
